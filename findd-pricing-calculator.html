@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Findd Pricing Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --primary: #2F7CF6;
+  --secondary: #3919FF;
+  --accent: #FCB00C;
+  --dark: #0B0F24;
+  --dark2: #151a30;
+  --light-bg: #EFF3F6;
+  --white: #ffffff;
+  --text: #333;
+  --text-light: #6c7a8a;
+  --success: #00b755;
+  --border: #dde3ea;
+  --shadow: 0 4px 24px rgba(11,15,36,0.10);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Roboto',sans-serif; background:var(--light-bg); color:var(--text); }
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%);
+  padding: 32px 0 28px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content:'';
+  position:absolute; top:-60%; left:-10%; width:50%; height:200%;
+  background: radial-gradient(circle, rgba(47,124,246,0.12) 0%, transparent 70%);
+  pointer-events:none;
+}
+.header::after {
+  content:'';
+  position:absolute; bottom:-40%; right:-5%; width:40%; height:160%;
+  background: radial-gradient(circle, rgba(252,176,12,0.08) 0%, transparent 70%);
+  pointer-events:none;
+}
+.header h1 {
+  font-size: 28px; font-weight: 800; color: var(--white);
+  letter-spacing: -0.5px; position:relative; z-index:1;
+}
+.header h1 span { color: var(--accent); }
+.header p {
+  color: rgba(255,255,255,0.6); font-size: 14px; margin-top: 6px;
+  font-weight: 400; position:relative; z-index:1;
+}
+
+/* Container */
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 40px; }
+
+/* Cards */
+.card {
+  background: var(--white); border-radius: 12px; box-shadow: var(--shadow);
+  padding: 28px 32px; margin-bottom: 20px;
+}
+.card-title {
+  font-size: 16px; font-weight: 700; color: var(--dark);
+  margin-bottom: 18px; display:flex; align-items:center; gap:10px;
+}
+.card-title .icon {
+  width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+  font-size:16px; flex-shrink:0;
+}
+.icon-blue { background: rgba(47,124,246,0.1); color: var(--primary); }
+.icon-gold { background: rgba(252,176,12,0.12); color: #d49600; }
+.icon-green { background: rgba(0,183,85,0.1); color: var(--success); }
+
+/* Form Grid */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; }
+@media(max-width:700px){ .form-grid { grid-template-columns: 1fr; } }
+.form-group { display:flex; flex-direction:column; }
+.form-group.full { grid-column: 1 / -1; }
+label {
+  font-size: 12px; font-weight: 600; color: var(--text-light);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+}
+input, select {
+  padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+  font-size: 14px; font-family: 'Roboto',sans-serif; color: var(--text);
+  transition: border-color 0.2s, box-shadow 0.2s; background: var(--white);
+}
+input:focus, select:focus {
+  outline:none; border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(47,124,246,0.1);
+}
+input[type=number] { -moz-appearance: textfield; }
+input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+
+/* Module Checkboxes */
+.modules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.module-item {
+  display:flex; align-items:center; gap:10px; padding:12px 14px;
+  border:1.5px solid var(--border); border-radius:10px; cursor:pointer;
+  transition: all 0.2s; position:relative;
+}
+.module-item:hover { border-color: var(--primary); background: rgba(47,124,246,0.02); }
+.module-item.checked { border-color: var(--primary); background: rgba(47,124,246,0.04); }
+.module-item input[type=checkbox] { display:none; }
+.check-box {
+  width:20px; height:20px; border-radius:5px; border:2px solid var(--border);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  transition: all 0.2s; font-size:12px; color:transparent;
+}
+.module-item.checked .check-box {
+  background: var(--primary); border-color: var(--primary); color:var(--white);
+}
+.module-info { flex:1; min-width:0; }
+.module-name { font-size:13px; font-weight:600; color:var(--dark); }
+.module-price { font-size:11px; color:var(--text-light); margin-top:1px; }
+.module-detail-btn {
+  width:22px; height:22px; border-radius:50%; border:1.5px solid var(--border);
+  background:transparent; color:var(--text-light); font-size:12px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  transition: all 0.2s; font-weight:700;
+}
+.module-detail-btn:hover { border-color:var(--primary); color:var(--primary); background:rgba(47,124,246,0.05); }
+
+/* Module Detail Dropdown */
+.module-detail-panel {
+  display:none; background:var(--light-bg); border-radius:8px; padding:14px 16px;
+  margin-top:8px; font-size:12px; line-height:1.6; color:var(--text);
+  border-left: 3px solid var(--primary);
+}
+.module-detail-panel.open { display:block; }
+.module-detail-panel h4 { font-size:13px; font-weight:700; color:var(--dark); margin-bottom:6px; }
+.module-detail-panel ul { padding-left:16px; margin:0; }
+.module-detail-panel li { margin-bottom:2px; }
+
+/* Summary */
+.summary-grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+@media(max-width:600px){ .summary-grid { grid-template-columns: 1fr; } }
+.summary-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding: 8px 0; font-size:14px;
+}
+.summary-row.border-b { border-bottom: 1px solid var(--border); }
+.summary-label { color: var(--text-light); font-weight:400; }
+.summary-value { font-weight:600; color: var(--dark); }
+.summary-total {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:16px 0 4px; margin-top:8px; border-top:2px solid var(--dark);
+}
+.summary-total .label { font-size:16px; font-weight:700; color:var(--dark); }
+.summary-total .value { font-size:24px; font-weight:800; color:var(--primary); }
+.annual-note { text-align:right; font-size:12px; color:var(--text-light); margin-top:2px; }
+
+/* Breakdown Table */
+.breakdown-table { width:100%; border-collapse:collapse; margin-top:12px; }
+.breakdown-table th {
+  text-align:left; font-size:11px; font-weight:600; color:var(--text-light);
+  text-transform:uppercase; letter-spacing:0.5px; padding:8px 10px;
+  border-bottom:2px solid var(--border);
+}
+.breakdown-table td {
+  padding:10px 10px; font-size:13px; border-bottom:1px solid #f0f2f5;
+}
+.breakdown-table tr:last-child td { border-bottom:none; }
+.breakdown-table .mod-name { font-weight:600; color:var(--dark); }
+.breakdown-table .mod-rate { color:var(--text-light); }
+.breakdown-table .mod-total { font-weight:600; color:var(--primary); text-align:right; }
+.breakdown-table th:last-child { text-align:right; }
+
+/* Discount Badge */
+.discount-badge {
+  display:inline-flex; align-items:center; gap:4px; background:rgba(0,183,85,0.1);
+  color: var(--success); font-size:12px; font-weight:600; padding:3px 10px;
+  border-radius:20px; margin-left:8px;
+}
+
+/* Pro Services Card */
+.pro-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px 24px; }
+@media(max-width:700px){ .pro-grid { grid-template-columns: 1fr; } }
+.pro-rate-note { font-size:11px; color:var(--text-light); margin-top:3px; }
+.pro-line {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px 0; font-size:13px; border-bottom:1px solid var(--border);
+}
+.pro-line:last-child { border-bottom:none; }
+.pro-line .pro-label { color:var(--text-light); }
+.pro-line .pro-val { font-weight:600; color:var(--dark); }
+
+/* Grand Summary */
+.grand-summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:12px; }
+@media(max-width:600px){ .grand-summary-grid { grid-template-columns:1fr; } }
+.grand-box {
+  border-radius:10px; padding:20px 22px; position:relative; overflow:hidden;
+}
+.grand-box.recurring {
+  background: linear-gradient(135deg, rgba(47,124,246,0.06) 0%, rgba(57,25,255,0.04) 100%);
+  border: 1.5px solid rgba(47,124,246,0.2);
+}
+.grand-box.onetime {
+  background: linear-gradient(135deg, rgba(252,176,12,0.06) 0%, rgba(252,176,12,0.02) 100%);
+  border: 1.5px solid rgba(252,176,12,0.25);
+}
+.grand-box-label {
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;
+  margin-bottom:10px;
+}
+.grand-box.recurring .grand-box-label { color:var(--primary); }
+.grand-box.onetime .grand-box-label { color:#d49600; }
+.grand-box-value { font-size:28px; font-weight:800; }
+.grand-box.recurring .grand-box-value { color:var(--primary); }
+.grand-box.onetime .grand-box-value { color:#d49600; }
+.grand-box-sub { font-size:12px; color:var(--text-light); margin-top:4px; }
+.grand-box-detail { margin-top:10px; font-size:12px; color:var(--text-light); line-height:1.8; }
+.grand-divider {
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  margin:20px 0 8px; font-size:12px; color:var(--text-light); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+}
+.grand-divider::before, .grand-divider::after {
+  content:''; flex:1; height:1px; background:var(--border);
+}
+
+/* All-In Button */
+.allin-btn {
+  display:inline-flex; align-items:center; gap:6px; padding:8px 18px;
+  background:linear-gradient(135deg, var(--primary), var(--secondary));
+  color:var(--white); border:none; border-radius:8px; cursor:pointer;
+  font-size:13px; font-weight:600; font-family:'Roboto',sans-serif;
+  transition: transform 0.15s, box-shadow 0.15s; margin-top:8px;
+}
+.allin-btn:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(47,124,246,0.3); }
+
+/* Export PDF Button */
+.export-row { display:flex; justify-content:center; margin-top:20px; }
+.export-btn {
+  display:inline-flex; align-items:center; gap:8px; padding:12px 28px;
+  background:linear-gradient(135deg, var(--dark), var(--dark2));
+  color:var(--white); border:none; border-radius:10px; cursor:pointer;
+  font-size:14px; font-weight:600; font-family:'Roboto',sans-serif;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.export-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(11,15,36,0.25); }
+.export-btn:disabled { opacity:0.6; cursor:wait; transform:none; box-shadow:none; }
+.export-btn .export-icon { font-size:16px; }
+
+/* Hide the export button itself from its own PDF (kept for safety) */
+body.exporting .no-pdf { display:none !important; }
+
+/* Customer display banner (shows in UI + PDF once filled) */
+.customer-display {
+  margin-top: 14px; padding: 12px 16px; border-radius: 8px;
+  background: linear-gradient(135deg, rgba(47,124,246,0.06) 0%, rgba(57,25,255,0.03) 100%);
+  border-left: 4px solid var(--primary);
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+}
+.customer-display .prepared-for {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text-light);
+}
+.customer-display .customer-name-display {
+  font-size: 18px; font-weight: 700; color: var(--dark); margin-top: 2px;
+}
+.customer-display .quote-date {
+  font-size: 11px; color: var(--text-light); text-align: right;
+}
+.customer-display .quote-date strong { color: var(--dark); font-weight: 600; }
+
+/* Footer */
+.footer {
+  text-align:center; padding:20px; font-size:11px; color:var(--text-light);
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>Findd</span> Pricing Calculator</h1>
+  <p>Frontline Workforce Management Software &mdash; Per Employee Per Month (PEPM)</p>
+</div>
+
+<div class="container">
+
+  <!-- Customer Info -->
+  <div class="card">
+    <div class="card-title"><div class="icon icon-blue">&#x1f464;</div> Customer</div>
+    <div class="form-group full">
+      <label>Customer Name</label>
+      <input type="text" id="customerName" placeholder="Enter customer or company name" oninput="updateCustomerDisplay()">
+    </div>
+    <div id="customerDisplay" class="customer-display" style="display:none;"></div>
+  </div>
+
+  <!-- Client Size -->
+  <div class="card">
+    <div class="card-title"><div class="icon icon-blue">&#x1f4ca;</div> Client Size &amp; Discount</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Number of Employees</label>
+        <input type="number" id="empCount" min="1" max="150000" value="1000" oninput="calculate()">
+      </div>
+      <div class="form-group">
+        <label>Employee Tier (auto-selected)</label>
+        <select id="tierSelect" onchange="calculate()" disabled>
+          <option value="">Enter employee count above</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Bundled Discount (%)</label>
+        <input type="number" id="discount" min="0" max="100" step="0.5" value="0" oninput="calculate()">
+      </div>
+      <div class="form-group">
+        <label>Billing Period</label>
+        <select id="billingPeriod" onchange="calculate()">
+          <option value="monthly">Monthly</option>
+          <option value="annual">Annual</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modules -->
+  <div class="card">
+    <div class="card-title">
+      <div class="icon icon-gold">&#x2699;</div> Select Modules
+      <button class="allin-btn" onclick="selectAll()" id="allInBtn">&#x26A1; Select All-In Bundle</button>
+    </div>
+    <div class="modules-grid" id="modulesGrid"></div>
+    <div id="moduleDetails"></div>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <div class="card-title"><div class="icon icon-green">&#x1f4b0;</div> Pricing Summary</div>
+    <div style="overflow-x:auto;">
+      <table class="breakdown-table" id="breakdownTable">
+        <thead><tr><th>Module</th><th>PEPM Rate</th><th>Monthly Cost</th></tr></thead>
+        <tbody id="breakdownBody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:20px;">
+      <div class="summary-row border-b">
+        <span class="summary-label">Subtotal (PEPM)</span>
+        <span class="summary-value" id="subtotalPepm">$0.00</span>
+      </div>
+      <div class="summary-row border-b" id="discountRow" style="display:none;">
+        <span class="summary-label">Bundled Discount <span class="discount-badge" id="discountBadge">0%</span></span>
+        <span class="summary-value" style="color:var(--success);" id="discountAmt">-$0.00</span>
+      </div>
+      <div class="summary-row border-b">
+        <span class="summary-label">Final PEPM Rate</span>
+        <span class="summary-value" id="finalPepm">$0.00</span>
+      </div>
+      <div class="summary-row border-b">
+        <span class="summary-label">Employees</span>
+        <span class="summary-value" id="empDisplay">0</span>
+      </div>
+      <div class="summary-total">
+        <span class="label" id="totalLabel">Estimated Monthly Total</span>
+        <span class="value" id="totalValue">$0.00</span>
+      </div>
+      <div class="annual-note" id="annualNote"></div>
+    </div>
+
+  </div>
+
+  <!-- Professional Services -->
+  <div class="card">
+    <div class="card-title"><div class="icon icon-gold">&#x1f6e0;</div> Professional Services (One-Time)</div>
+    <div class="pro-grid">
+      <div class="form-group">
+        <label>Implementation Rate ($/employee)</label>
+        <input type="number" id="implRate" min="8" max="20" step="0.5" value="8" oninput="calculate()">
+        <div class="pro-rate-note">Range: $8 &ndash; $20 per employee</div>
+      </div>
+      <div class="form-group">
+        <label>Integration Hours</label>
+        <input type="number" id="intHours" min="0" step="1" value="0" oninput="calculate()">
+        <div class="pro-rate-note">Rate: $210/hr &mdash; includes API integrations to 3rd-party systems</div>
+      </div>
+      <div class="form-group">
+        <label>Training Hours</label>
+        <input type="number" id="trainHours" min="0" step="1" value="0" oninput="calculate()">
+        <div class="pro-rate-note">Rate: $75/hr</div>
+      </div>
+      <div class="form-group">
+        <label># of Unions / CBAs</label>
+        <input type="number" id="unionCount" min="0" step="1" value="0" oninput="calculate()">
+        <div class="pro-rate-note">$500 per agreement (implementation)</div>
+      </div>
+      <div class="form-group">
+        <label>Custom Punch / Pay Rules</label>
+        <input type="number" id="customRules" min="0" step="1" value="0" oninput="calculate()">
+        <div class="pro-rate-note">$2,000 per every 5 rules (billed in blocks of 5)</div>
+      </div>
+      <div class="form-group">
+        <label>Pro Services Discount (%)</label>
+        <input type="number" id="proDiscount" min="0" max="100" step="0.5" value="0" oninput="calculate()">
+        <div class="pro-rate-note">Applied to one-time professional services total</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;">
+      <div class="pro-line">
+        <span class="pro-label">Implementation</span>
+        <span class="pro-val" id="implTotal">$0</span>
+      </div>
+      <div class="pro-line">
+        <span class="pro-label">Integration</span>
+        <span class="pro-val" id="intTotal">$0</span>
+      </div>
+      <div class="pro-line">
+        <span class="pro-label">Training</span>
+        <span class="pro-val" id="trainTotal">$0</span>
+      </div>
+      <div class="pro-line">
+        <span class="pro-label">Unions / CBAs <span id="unionDetail" style="font-size:11px; color:var(--text-light); font-weight:400;"></span></span>
+        <span class="pro-val" id="unionTotal">$0</span>
+      </div>
+      <div class="pro-line">
+        <span class="pro-label">Custom Punch / Pay Rules <span id="customRulesDetail" style="font-size:11px; color:var(--text-light); font-weight:400;"></span></span>
+        <span class="pro-val" id="customRulesTotal">$0</span>
+      </div>
+      <div class="pro-line" id="proSubtotalRow" style="display:none;">
+        <span class="pro-label">Subtotal</span>
+        <span class="pro-val" id="proSubtotal">$0</span>
+      </div>
+      <div class="pro-line" id="proDiscountRow" style="display:none;">
+        <span class="pro-label">Pro Services Discount <span class="discount-badge" id="proDiscountBadge">0%</span></span>
+        <span class="pro-val" style="color:var(--success);" id="proDiscountAmt">-$0</span>
+      </div>
+      <div class="pro-line" style="border-top:2px solid var(--dark); margin-top:4px; padding-top:12px; border-bottom:none;">
+        <span style="font-weight:700; color:var(--dark);">Total Professional Services</span>
+        <span style="font-weight:800; color:#d49600; font-size:16px;" id="proTotal">$0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grand Summary -->
+  <div class="card">
+    <div class="card-title"><div class="icon icon-green">&#x1f4c8;</div> Grand Summary</div>
+    <div class="grand-summary-grid">
+      <div class="grand-box recurring">
+        <div class="grand-box-label">Monthly Recurring</div>
+        <div class="grand-box-value" id="grandMonthly">$0</div>
+        <div class="grand-box-sub" id="grandMonthlySub"></div>
+        <div class="grand-box-detail" id="grandMonthlyDetail"></div>
+      </div>
+      <div class="grand-box onetime">
+        <div class="grand-box-label">One-Time Fees</div>
+        <div class="grand-box-value" id="grandOnetime">$0</div>
+        <div class="grand-box-sub" id="grandOnetimeSub"></div>
+        <div class="grand-box-detail" id="grandOnetimeDetail"></div>
+      </div>
+    </div>
+    <div class="grand-divider">First Month Estimate</div>
+    <div class="summary-total" style="border-top:none; padding-top:4px;">
+      <span class="label">Total Due at Launch</span>
+      <span class="value" id="grandFirstMonth">$0</span>
+    </div>
+    <div class="annual-note" id="grandAnnualNote"></div>
+    <div class="export-row no-pdf">
+      <button class="export-btn" id="exportBtn" onclick="exportPDF()">
+        <span class="export-icon">&#x1f4c4;</span>
+        <span id="exportBtnLabel">Export PDF</span>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">&copy; 2024 Findd &mdash; Pricing is illustrative. Contact sales for a formal quote.</div>
+
+<script>
+// Pricing tiers: [midpoint, low, high, biometric, tlm, accruals, scheduling, hris, workops, planning]
+const tiers = [
+  {low:1, high:2500, mid:1251, rates:{biometric:2.79,tlm:2.98,accruals:0.75,scheduling:1.12,hris:3.06,workops:5.00,planning:1.42}},
+  {low:2501, high:5000, mid:3751, rates:{biometric:2.73,tlm:2.92,accruals:0.74,scheduling:1.10,hris:3.00,workops:4.90,planning:1.39}},
+  {low:5001, high:7500, mid:6251, rates:{biometric:2.68,tlm:2.86,accruals:0.72,scheduling:1.08,hris:2.94,workops:4.80,planning:1.36}},
+  {low:7501, high:10000, mid:8751, rates:{biometric:2.62,tlm:2.80,accruals:0.71,scheduling:1.05,hris:2.88,workops:4.70,planning:1.33}},
+  {low:10001, high:12500, mid:11251, rates:{biometric:2.57,tlm:2.74,accruals:0.69,scheduling:1.03,hris:2.82,workops:4.60,planning:1.31}},
+  {low:12501, high:15000, mid:13751, rates:{biometric:2.51,tlm:2.68,accruals:0.68,scheduling:1.01,hris:2.75,workops:4.50,planning:1.28}},
+  {low:15001, high:17500, mid:16251, rates:{biometric:2.46,tlm:2.62,accruals:0.66,scheduling:0.99,hris:2.69,workops:4.40,planning:1.25}},
+  {low:17501, high:20000, mid:18751, rates:{biometric:2.40,tlm:2.56,accruals:0.65,scheduling:0.96,hris:2.63,workops:4.30,planning:1.22}},
+  {low:20001, high:22500, mid:21251, rates:{biometric:2.34,tlm:2.50,accruals:0.63,scheduling:0.94,hris:2.57,workops:4.20,planning:1.19}},
+  {low:22501, high:25000, mid:23751, rates:{biometric:2.29,tlm:2.44,accruals:0.62,scheduling:0.92,hris:2.51,workops:4.10,planning:1.16}},
+  {low:25001, high:27500, mid:26251, rates:{biometric:2.23,tlm:2.38,accruals:0.60,scheduling:0.90,hris:2.45,workops:4.00,planning:1.14}},
+  {low:27501, high:30000, mid:28751, rates:{biometric:2.18,tlm:2.32,accruals:0.59,scheduling:0.87,hris:2.39,workops:3.90,planning:1.11}},
+  {low:30001, high:35000, mid:32501, rates:{biometric:2.12,tlm:2.26,accruals:0.57,scheduling:0.85,hris:2.33,workops:3.80,planning:1.08}},
+  {low:35001, high:40000, mid:37501, rates:{biometric:2.06,tlm:2.21,accruals:0.56,scheduling:0.83,hris:2.26,workops:3.70,planning:1.05}},
+  {low:40001, high:45000, mid:42501, rates:{biometric:2.01,tlm:2.15,accruals:0.54,scheduling:0.81,hris:2.20,workops:3.60,planning:1.02}},
+  {low:45001, high:50000, mid:47501, rates:{biometric:1.95,tlm:2.09,accruals:0.53,scheduling:0.78,hris:2.14,workops:3.50,planning:0.99}},
+  {low:50001, high:55000, mid:52501, rates:{biometric:1.90,tlm:2.03,accruals:0.51,scheduling:0.76,hris:2.08,workops:3.40,planning:0.97}},
+  {low:55001, high:60000, mid:57501, rates:{biometric:1.84,tlm:1.97,accruals:0.50,scheduling:0.74,hris:2.02,workops:3.30,planning:0.94}},
+  {low:60001, high:65000, mid:62501, rates:{biometric:1.79,tlm:1.91,accruals:0.48,scheduling:0.72,hris:1.96,workops:3.20,planning:0.91}},
+  {low:65001, high:70000, mid:67501, rates:{biometric:1.73,tlm:1.85,accruals:0.47,scheduling:0.69,hris:1.90,workops:3.10,planning:0.88}},
+  {low:70001, high:75000, mid:72501, rates:{biometric:1.67,tlm:1.79,accruals:0.45,scheduling:0.67,hris:1.84,workops:3.00,planning:0.85}},
+  {low:75001, high:85000, mid:80001, rates:{biometric:1.62,tlm:1.73,accruals:0.44,scheduling:0.65,hris:1.77,workops:2.90,planning:0.82}},
+  {low:85001, high:100000, mid:92501, rates:{biometric:1.56,tlm:1.67,accruals:0.42,scheduling:0.63,hris:1.71,workops:2.80,planning:0.80}},
+  {low:100001, high:125000, mid:112501, rates:{biometric:1.51,tlm:1.61,accruals:0.41,scheduling:0.60,hris:1.65,workops:2.70,planning:0.77}},
+  {low:125001, high:150000, mid:137501, rates:{biometric:1.45,tlm:1.55,accruals:0.39,scheduling:0.58,hris:1.59,workops:2.60,planning:0.74}},
+];
+
+const modules = [
+  {
+    id:'biometric', name:'Mobile Biometric Clock', key:'biometric',
+    desc:'Facial recognition time clock with offline support, geofencing, microlocations, kiosk & individual modes, liveness detection, break management, punch questions, and multi-language mobile UI.',
+    features:['Mobile online/offline facial recognition','Geofencing & microlocations','Self-scheduling from mobile','Job costing & mid-shift transfers','Kiosk & individual device modes','Liveness detection (anti-spoofing)','Configurable break windows','Missing punch workflow','Honor-based time entry','Breadcrumbing & punch history','Employee wallet & self-service']
+  },
+  {
+    id:'tlm', name:'Time & Labor Management', key:'tlm',
+    desc:'Advanced time & attendance with FinddCompute punch rules engine, job costing, approval workflows, overtime policies, attendance management, payroll prep, and supervisor tools.',
+    features:['FinddCompute script-based punch rules engine','Advanced pay rate, bill rate & profitability calculations','Configurable job costing hierarchy','Approval workflow routing & review','Activity dashboards (in/out, approaching OT)','Attendance & audit management','Exception module by category','Payroll prep module with locking','Custom OT policies per hierarchy','Device management & employee policy settings']
+  },
+  {
+    id:'accruals', name:'Accruals & Leave Tracking', key:'accruals',
+    desc:'Comprehensive leave management including vacation, sick leave, accrual calculations, mobile time-off requests, grant-based accruals, probation periods, and FinddScript custom accrual handling.',
+    features:['Vacation & sick leave tracking','Advanced accrual calculations','Mobile time-off requests','Supervisor leave request management','Calendar view of leave','Sort by seniority for approvals','Grant-based accruals (anniversary, calendar)','Minimum & maximum balance rules','Probation period support','FinddScript custom accrual credit/debit handling']
+  },
+  {
+    id:'scheduling', name:'Advanced Scheduling', key:'scheduling',
+    desc:'Full scheduling suite with automated scheduling, master schedules, shift templates, position-based scheduling, conflict checks, drag/drop, budget-driven schedules, and FinddDemand integration.',
+    features:['Automated scheduling','Schedule planning & posting workflows','Master schedules (auto-post x days in advance)','Shift & schedule templates','Position-based scheduling','Exception-based management (late in, early out, etc.)','Shift qualifications & break rules','Conflict checks (overlapping shifts, time off)','Drag/drop schedule adjustments','Daily, weekly & monthly budget views','Mobile offline schedule sync','Variable budget-driven schedules (FinddDemand)']
+  },
+  {
+    id:'hris', name:'HRIS & Onboarding', key:'hris',
+    desc:'Complete HR information system with ATS, onboarding, document management, compliance, rewards, gamification, compensation, e-verify, and deep integration capabilities.',
+    features:['Applicant tracking system (ATS)','Job posting to Indeed, LinkedIn, Job Target','AI-generated job descriptions (multi-language)','Pipeline management & automation','Digitized document submission & e-signature','Kanban workflows with stages','Employee database & management','Identity & work eligibility verification','Compliance management & FMLA','Rewards, gamification & leaderboards','Compensation module','Custom note types, forms & reporting','Visual org chart & occupation/specialty tracking']
+  },
+  {
+    id:'workops', name:'WorkOps', key:'workops',
+    desc:'Workforce Optimization Dashboard showing cost savings potential across your workforce, with fill rate analysis, per diem/float/agency/overtime savings, optimal staffing plans, and drill-down analytics.',
+    features:['Graphic UI showing cost savings potential','Import data from any source (one-time & ongoing)','FinddCompute engine for shift calculations','Compares optimal staff plan to actual','Fill rate % (actual vs. optimal staff plan)','Per diem / float savings analysis','Agency savings potential analysis','Overtime savings vs. agreed target','Insight buttons with detailed breakdowns','Drill-down by worker type, company, hierarchy, position','Leverages FinddDemand for optimal staffing','Leverages FinddTrends for forecasting']
+  },
+  {
+    id:'planning', name:'Workforce Planning & Gig Pool*', key:'planning',
+    requires:'scheduling',
+    desc:'Broadcast open shifts, tiered shift broadcasting (3+ tiers), proximity-based limits, OT prevention, rewards for shift uptake, agency/VMS integration, and user match filtering. *Requires Advanced Scheduling.',
+    features:['Broadcast open shifts to mobile users','Tiered broadcasting (3+ tiers)','Broadcast by user status & staff type','Prevent employees in OT','Limit broadcast by proximity (miles)','Rewards for taking shifts (badges, $, differentials)','Agency & VMS integration option','User match filter','Mobile ESS views (available, applied, declined, confirmed)','Text-based broadcasting to candidates']
+  }
+];
+
+// Build modules grid
+const grid = document.getElementById('modulesGrid');
+const detailsContainer = document.getElementById('moduleDetails');
+modules.forEach(m => {
+  const item = document.createElement('div');
+  item.className = 'module-item';
+  item.id = 'item-' + m.id;
+  item.innerHTML = `
+    <input type="checkbox" id="cb-${m.id}" onchange="onModuleChange('${m.id}')">
+    <div class="check-box">&#x2713;</div>
+    <div class="module-info">
+      <div class="module-name">${m.name}${m.requires ? ' *' : ''}</div>
+      <div class="module-price" id="price-${m.id}">—</div>
+    </div>
+    <button class="module-detail-btn" onclick="event.stopPropagation(); toggleDetail('${m.id}')" title="View features">i</button>
+  `;
+  item.addEventListener('click', (e) => {
+    if(e.target.closest('.module-detail-btn')) return;
+    document.getElementById('cb-'+m.id).checked = !document.getElementById('cb-'+m.id).checked;
+    onModuleChange(m.id);
+  });
+  grid.appendChild(item);
+
+  // Detail panel
+  const panel = document.createElement('div');
+  panel.className = 'module-detail-panel';
+  panel.id = 'detail-' + m.id;
+  panel.innerHTML = `<h4>${m.name}</h4><p style="margin-bottom:6px;">${m.desc}</p><ul>${m.features.map(f=>'<li>'+f+'</li>').join('')}</ul>`;
+  detailsContainer.appendChild(panel);
+});
+
+// Populate tier select
+const tierSelect = document.getElementById('tierSelect');
+tiers.forEach((t,i) => {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = t.low.toLocaleString() + ' – ' + t.high.toLocaleString() + ' employees';
+  tierSelect.appendChild(opt);
+});
+
+function findTier(count) {
+  for(let i=0;i<tiers.length;i++){
+    if(count >= tiers[i].low && count <= tiers[i].high) return i;
+  }
+  if(count < 1) return 0;
+  return tiers.length - 1;
+}
+
+function onModuleChange(id) {
+  const cb = document.getElementById('cb-'+id);
+  const item = document.getElementById('item-'+id);
+  if(cb.checked){ item.classList.add('checked'); } else { item.classList.remove('checked'); }
+  // If planning is checked, auto-check scheduling
+  if(id === 'planning' && cb.checked){
+    const sCb = document.getElementById('cb-scheduling');
+    if(!sCb.checked){ sCb.checked = true; document.getElementById('item-scheduling').classList.add('checked'); }
+  }
+  calculate();
+}
+
+function toggleDetail(id) {
+  const panel = document.getElementById('detail-'+id);
+  // Close all others
+  document.querySelectorAll('.module-detail-panel').forEach(p => { if(p.id !== 'detail-'+id) p.classList.remove('open'); });
+  panel.classList.toggle('open');
+}
+
+function selectAll() {
+  const allChecked = modules.every(m => document.getElementById('cb-'+m.id).checked);
+  modules.forEach(m => {
+    document.getElementById('cb-'+m.id).checked = !allChecked;
+    const item = document.getElementById('item-'+m.id);
+    if(!allChecked) item.classList.add('checked'); else item.classList.remove('checked');
+  });
+  document.getElementById('allInBtn').innerHTML = allChecked ? '&#x26A1; Select All-In Bundle' : '&#x2715; Deselect All';
+  calculate();
+}
+
+function fmt(n){ return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function fmtInt(n){ return '$' + Math.round(n).toLocaleString(); }
+
+function calculate() {
+  const empCount = Math.max(1, parseInt(document.getElementById('empCount').value) || 1);
+  const discount = Math.max(0, Math.min(100, parseFloat(document.getElementById('discount').value) || 0));
+  const billing = document.getElementById('billingPeriod').value;
+  const tierIdx = findTier(empCount);
+  tierSelect.value = tierIdx;
+  const tier = tiers[tierIdx];
+
+  // Update module price labels
+  modules.forEach(m => {
+    const rate = tier.rates[m.key];
+    document.getElementById('price-'+m.id).textContent = '$' + rate.toFixed(2) + ' PEPM';
+  });
+
+  // Build breakdown
+  const tbody = document.getElementById('breakdownBody');
+  tbody.innerHTML = '';
+  let subtotalPepm = 0;
+  let selectedModules = [];
+
+  modules.forEach(m => {
+    if(!document.getElementById('cb-'+m.id).checked) return;
+    const rate = tier.rates[m.key];
+    subtotalPepm += rate;
+    selectedModules.push({name:m.name, rate, monthly: rate * empCount});
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="mod-name">${m.name}</td><td class="mod-rate">${fmt(rate)}</td><td class="mod-total">${fmt(rate * empCount)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  if(selectedModules.length === 0){
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-light);padding:20px;">Select modules above to see pricing</td></tr>';
+  }
+
+  // Discount
+  const discountFraction = discount / 100;
+  const discountPepm = subtotalPepm * discountFraction;
+  const finalPepm = subtotalPepm - discountPepm;
+  const monthlyTotal = finalPepm * empCount;
+  const annualTotal = monthlyTotal * 12;
+
+  document.getElementById('subtotalPepm').textContent = fmt(subtotalPepm);
+  const discountRow = document.getElementById('discountRow');
+  if(discount > 0){
+    discountRow.style.display = 'flex';
+    document.getElementById('discountBadge').textContent = discount + '%';
+    document.getElementById('discountAmt').textContent = '-' + fmt(discountPepm) + ' PEPM';
+  } else {
+    discountRow.style.display = 'none';
+  }
+  document.getElementById('finalPepm').textContent = fmt(finalPepm);
+  document.getElementById('empDisplay').textContent = empCount.toLocaleString();
+
+  if(billing === 'monthly'){
+    document.getElementById('totalLabel').textContent = 'Estimated Monthly Total';
+    document.getElementById('totalValue').textContent = fmtInt(monthlyTotal);
+    document.getElementById('annualNote').textContent = annualTotal > 0 ? '(' + fmtInt(annualTotal) + ' annually)' : '';
+  } else {
+    document.getElementById('totalLabel').textContent = 'Estimated Annual Total';
+    document.getElementById('totalValue').textContent = fmtInt(annualTotal);
+    document.getElementById('annualNote').textContent = annualTotal > 0 ? '(' + fmtInt(monthlyTotal) + ' per month)' : '';
+  }
+
+  // Professional Services
+  const implRate = Math.max(0, parseFloat(document.getElementById('implRate').value) || 0);
+  const intHours = Math.max(0, parseFloat(document.getElementById('intHours').value) || 0);
+  const trainHours = Math.max(0, parseFloat(document.getElementById('trainHours').value) || 0);
+  const unionCount = Math.max(0, parseInt(document.getElementById('unionCount').value) || 0);
+  const customRules = Math.max(0, parseInt(document.getElementById('customRules').value) || 0);
+  const proDiscount = Math.max(0, Math.min(100, parseFloat(document.getElementById('proDiscount').value) || 0));
+
+  const implCost = implRate * empCount;
+  const intCost = intHours * 210;
+  const trainCost = trainHours * 75;
+  const unionCost = unionCount * 500;
+  const ruleBlocks = Math.ceil(customRules / 5);
+  const customRulesCost = ruleBlocks * 2000;
+  const proSubtotalCost = implCost + intCost + trainCost + unionCost + customRulesCost;
+  const proDiscountAmt = proSubtotalCost * (proDiscount / 100);
+  const proTotalCost = proSubtotalCost - proDiscountAmt;
+
+  document.getElementById('implTotal').textContent = fmtInt(implCost);
+  document.getElementById('intTotal').textContent = fmtInt(intCost);
+  document.getElementById('trainTotal').textContent = fmtInt(trainCost);
+  document.getElementById('unionTotal').textContent = fmtInt(unionCost);
+  document.getElementById('customRulesTotal').textContent = fmtInt(customRulesCost);
+  document.getElementById('unionDetail').textContent = unionCount > 0 ? '(' + unionCount + ' × $500)' : '';
+  document.getElementById('customRulesDetail').textContent = customRules > 0 ? '(' + customRules + ' rule' + (customRules === 1 ? '' : 's') + ' → ' + ruleBlocks + ' block' + (ruleBlocks === 1 ? '' : 's') + ' of 5)' : '';
+
+  // Show subtotal + discount rows only when a discount is applied
+  const proSubtotalRow = document.getElementById('proSubtotalRow');
+  const proDiscountRow = document.getElementById('proDiscountRow');
+  if(proDiscount > 0 && proSubtotalCost > 0){
+    proSubtotalRow.style.display = 'flex';
+    proDiscountRow.style.display = 'flex';
+    document.getElementById('proSubtotal').textContent = fmtInt(proSubtotalCost);
+    document.getElementById('proDiscountBadge').textContent = proDiscount + '%';
+    document.getElementById('proDiscountAmt').textContent = '-' + fmtInt(proDiscountAmt);
+  } else {
+    proSubtotalRow.style.display = 'none';
+    proDiscountRow.style.display = 'none';
+  }
+  document.getElementById('proTotal').textContent = fmtInt(proTotalCost);
+
+  // Grand Summary
+  document.getElementById('grandMonthly').textContent = fmtInt(monthlyTotal);
+  let monthlyDetailParts = [];
+  if(selectedModules.length > 0){
+    monthlyDetailParts.push(fmt(finalPepm) + ' PEPM x ' + empCount.toLocaleString() + ' employees');
+    if(discount > 0) monthlyDetailParts.push(discount + '% bundled discount applied');
+  }
+  document.getElementById('grandMonthlySub').textContent = annualTotal > 0 ? fmtInt(annualTotal) + ' annually' : '';
+  document.getElementById('grandMonthlyDetail').textContent = monthlyDetailParts.join(' · ');
+
+  document.getElementById('grandOnetime').textContent = fmtInt(proTotalCost);
+  let onetimeDetailParts = [];
+  if(implCost > 0) onetimeDetailParts.push('Implementation: ' + fmtInt(implCost));
+  if(intCost > 0) onetimeDetailParts.push('Integration: ' + fmtInt(intCost));
+  if(trainCost > 0) onetimeDetailParts.push('Training: ' + fmtInt(trainCost));
+  if(unionCost > 0) onetimeDetailParts.push('Unions/CBAs: ' + fmtInt(unionCost));
+  if(customRulesCost > 0) onetimeDetailParts.push('Custom Rules: ' + fmtInt(customRulesCost));
+  if(proDiscount > 0 && proSubtotalCost > 0) onetimeDetailParts.push(proDiscount + '% discount applied');
+  document.getElementById('grandOnetimeSub').textContent = onetimeDetailParts.length > 0 ? onetimeDetailParts.join(' + ') : 'No professional services configured';
+  document.getElementById('grandOnetimeDetail').textContent = '';
+
+  const firstMonthTotal = monthlyTotal + proTotalCost;
+  document.getElementById('grandFirstMonth').textContent = fmtInt(firstMonthTotal);
+  document.getElementById('grandAnnualNote').textContent = annualTotal > 0 ? 'First year total: ' + fmtInt(annualTotal + proTotalCost) : '';
+
+  // Update all-in button text
+  const allChecked = modules.every(m => document.getElementById('cb-'+m.id).checked);
+  document.getElementById('allInBtn').innerHTML = allChecked ? '&#x2715; Deselect All' : '&#x26A1; Select All-In Bundle';
+}
+
+// Update the "Prepared for" display when customer name is typed
+function updateCustomerDisplay() {
+  const name = document.getElementById('customerName').value.trim();
+  const display = document.getElementById('customerDisplay');
+  if (name) {
+    const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+    display.innerHTML =
+      '<div>' +
+        '<div class="prepared-for">Prepared For</div>' +
+        '<div class="customer-name-display">' + name.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'})[c]) + '</div>' +
+      '</div>' +
+      '<div class="quote-date">' +
+        '<div>Quote Date</div>' +
+        '<strong>' + today + '</strong>' +
+      '</div>';
+    display.style.display = 'flex';
+  } else {
+    display.style.display = 'none';
+  }
+}
+
+// Build a plain-data snapshot of all quote values (numbers, not formatted strings)
+function computeQuote() {
+  const empCount = Math.max(1, parseInt(document.getElementById('empCount').value) || 1);
+  const discount = Math.max(0, Math.min(100, parseFloat(document.getElementById('discount').value) || 0));
+  const billing = document.getElementById('billingPeriod').value;
+  const customerName = (document.getElementById('customerName').value || '').trim();
+  const tierIdx = findTier(empCount);
+  const tier = tiers[tierIdx];
+
+  const selectedModules = modules
+    .filter(m => document.getElementById('cb-' + m.id).checked)
+    .map(m => ({ name: m.name.replace(/\*+$/, '').trim(), rate: tier.rates[m.key], monthly: tier.rates[m.key] * empCount }));
+
+  const subtotalPepm = selectedModules.reduce((s, m) => s + m.rate, 0);
+  const discountPepm = subtotalPepm * (discount / 100);
+  const finalPepm = subtotalPepm - discountPepm;
+  const monthlyTotal = finalPepm * empCount;
+  const annualTotal = monthlyTotal * 12;
+
+  const implRate = Math.max(0, parseFloat(document.getElementById('implRate').value) || 0);
+  const intHours = Math.max(0, parseFloat(document.getElementById('intHours').value) || 0);
+  const trainHours = Math.max(0, parseFloat(document.getElementById('trainHours').value) || 0);
+  const unionCount = Math.max(0, parseInt(document.getElementById('unionCount').value) || 0);
+  const customRules = Math.max(0, parseInt(document.getElementById('customRules').value) || 0);
+  const proDiscount = Math.max(0, Math.min(100, parseFloat(document.getElementById('proDiscount').value) || 0));
+  const implCost = implRate * empCount;
+  const intCost = intHours * 210;
+  const trainCost = trainHours * 75;
+  const unionCost = unionCount * 500;
+  const ruleBlocks = Math.ceil(customRules / 5);
+  const customRulesCost = ruleBlocks * 2000;
+  const proSubtotal = implCost + intCost + trainCost + unionCost + customRulesCost;
+  const proDiscountAmt = proSubtotal * (proDiscount / 100);
+  const proTotal = proSubtotal - proDiscountAmt;
+
+  return {
+    customerName, empCount, billing, tier,
+    discount, subtotalPepm, discountPepm, finalPepm, monthlyTotal, annualTotal,
+    selectedModules,
+    pro: {
+      implRate, intHours, trainHours, unionCount, customRules, ruleBlocks, proDiscount,
+      implCost, intCost, trainCost, unionCost, customRulesCost,
+      proSubtotal, proDiscountAmt, proTotal,
+    },
+    firstMonth: monthlyTotal + proTotal,
+    firstYear: annualTotal + proTotal,
+  };
+}
+
+// Draw a full text-based quote document to the given jsPDF instance
+function renderQuoteDocument(pdf, q) {
+  const COLOR = {
+    primary:    [47, 124, 246],
+    accent:     [252, 176, 12],
+    accentDark: [212, 150, 0],
+    dark:       [11, 15, 36],
+    text:       [51, 51, 51],
+    textLight:  [108, 122, 138],
+    success:    [0, 135, 65],
+    border:     [221, 227, 234],
+    borderLt:   [240, 242, 245],
+    recBoxBg:   [245, 249, 254],
+    recBoxBd:   [200, 220, 250],
+    oneBoxBg:   [254, 248, 233],
+    oneBoxBd:   [245, 220, 170],
+    white:      [255, 255, 255],
+  };
+  const pageW = 8.5, pageH = 11;
+  const mL = 0.6, mR = 0.6, mT = 0.5, mB = 0.55;
+  const contentW = pageW - mL - mR;
+  let y = 0;
+  const setFill = c => pdf.setFillColor(c[0], c[1], c[2]);
+  const setText = c => pdf.setTextColor(c[0], c[1], c[2]);
+  const setDraw = c => pdf.setDrawColor(c[0], c[1], c[2]);
+  const needSpace = h => { if (y + h > pageH - mB) { pdf.addPage(); y = mT; } };
+
+  // ------- Page header bar (page 1 only) -------
+  setFill(COLOR.dark);
+  pdf.rect(0, 0, pageW, 0.95, 'F');
+  setFill(COLOR.accent);
+  pdf.rect(0, 0, 0.08, 0.95, 'F');
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(22);
+  const findd = 'Findd', rest = ' Pricing Quote';
+  const finddW = pdf.getTextWidth(findd);
+  const restW = pdf.getTextWidth(rest);
+  const titleX = (pageW - finddW - restW) / 2;
+  setText(COLOR.accent); pdf.text(findd, titleX, 0.47);
+  setText(COLOR.white);  pdf.text(rest, titleX + finddW, 0.47);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(9.5);
+  setText([180, 190, 210]);
+  pdf.text('Frontline Workforce Management Software  ·  Per Employee Per Month (PEPM)', pageW / 2, 0.73, { align: 'center' });
+  y = 1.2;
+
+  // ------- Prepared For banner / Quote date -------
+  const dateStr = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  if (q.customerName) {
+    setFill(COLOR.recBoxBg);
+    setDraw(COLOR.primary);
+    pdf.setLineWidth(0.01);
+    pdf.roundedRect(mL, y, contentW, 0.65, 0.06, 0.06, 'F');
+    setFill(COLOR.primary);
+    pdf.rect(mL, y, 0.07, 0.65, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    setText(COLOR.textLight);
+    pdf.text('PREPARED FOR', mL + 0.22, y + 0.22);
+    pdf.setFontSize(14);
+    setText(COLOR.dark);
+    pdf.text(q.customerName, mL + 0.22, y + 0.48);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    setText(COLOR.textLight);
+    pdf.text('QUOTE DATE', pageW - mR - 0.15, y + 0.22, { align: 'right' });
+    pdf.setFontSize(10);
+    setText(COLOR.dark);
+    pdf.text(dateStr, pageW - mR - 0.15, y + 0.46, { align: 'right' });
+    y += 0.85;
+  } else {
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    setText(COLOR.textLight);
+    pdf.text('QUOTE DATE', pageW - mR, y, { align: 'right' });
+    pdf.setFontSize(10);
+    setText(COLOR.dark);
+    pdf.text(dateStr, pageW - mR, y + 0.2, { align: 'right' });
+    y += 0.5;
+  }
+
+  // ------- Helpers -------
+  function sectionHeading(title) {
+    needSpace(0.55);
+    y += 0.08;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    setText(COLOR.dark);
+    const upper = title.toUpperCase();
+    pdf.text(upper, mL, y + 0.14);
+    const tw = pdf.getTextWidth(upper);
+    setDraw(COLOR.accent);
+    pdf.setLineWidth(0.035);
+    pdf.line(mL, y + 0.22, mL + tw + 0.08, y + 0.22);
+    setDraw(COLOR.border);
+    pdf.setLineWidth(0.008);
+    pdf.line(mL + tw + 0.18, y + 0.22, pageW - mR, y + 0.22);
+    y += 0.4;
+  }
+  function kvRow(label, value, opts) {
+    opts = opts || {};
+    needSpace(0.26);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    setText(opts.labelColor || COLOR.textLight);
+    pdf.text(label, mL + 0.05, y + 0.14);
+    pdf.setFont('helvetica', opts.boldValue ? 'bold' : 'normal');
+    setText(opts.valueColor || COLOR.dark);
+    pdf.text(value, pageW - mR - 0.05, y + 0.14, { align: 'right' });
+    if (opts.border !== false) {
+      setDraw(COLOR.borderLt);
+      pdf.setLineWidth(0.005);
+      pdf.line(mL + 0.05, y + 0.22, pageW - mR - 0.05, y + 0.22);
+    }
+    y += 0.26;
+  }
+  function tableHeader(cols, widthsIn) {
+    needSpace(0.3);
+    const xs = [mL + 0.05];
+    for (let i = 1; i < widthsIn.length; i++) xs.push(xs[i - 1] + widthsIn[i - 1]);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    setText(COLOR.textLight);
+    for (let i = 0; i < cols.length; i++) {
+      const align = i === cols.length - 1 ? 'right' : 'left';
+      const x = align === 'right' ? pageW - mR - 0.05 : xs[i];
+      pdf.text(cols[i].toUpperCase(), x, y + 0.14, { align });
+    }
+    setDraw(COLOR.border);
+    pdf.setLineWidth(0.015);
+    pdf.line(mL, y + 0.22, pageW - mR, y + 0.22);
+    y += 0.3;
+    return xs;
+  }
+  function tableRow(cols, xs, opts) {
+    opts = opts || {};
+    needSpace(0.3);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    for (let i = 0; i < cols.length; i++) {
+      const isLast = i === cols.length - 1;
+      const align = isLast ? 'right' : 'left';
+      const x = isLast ? pageW - mR - 0.05 : xs[i];
+      if (isLast) { pdf.setFont('helvetica','bold'); setText(opts.amountColor || COLOR.primary); }
+      else if (i === 0) { pdf.setFont('helvetica','bold'); setText(COLOR.dark); }
+      else { pdf.setFont('helvetica','normal'); setText(COLOR.textLight); }
+      const maxW = isLast ? 1.2 : (i < xs.length - 1 ? xs[i+1] - xs[i] - 0.1 : pageW - mR - 0.1 - xs[i]);
+      const lines = pdf.splitTextToSize(String(cols[i]), maxW);
+      for (let li = 0; li < lines.length; li++) pdf.text(lines[li], x, y + 0.14 + li * 0.13, { align });
+    }
+    setDraw(COLOR.borderLt);
+    pdf.setLineWidth(0.004);
+    pdf.line(mL + 0.05, y + 0.26, pageW - mR - 0.05, y + 0.26);
+    y += 0.3;
+  }
+  function bigTotal(label, value, valueColor) {
+    needSpace(0.55);
+    y += 0.1;
+    setDraw(COLOR.dark);
+    pdf.setLineWidth(0.025);
+    pdf.line(mL, y, pageW - mR, y);
+    y += 0.12;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    setText(COLOR.dark);
+    pdf.text(label, mL + 0.05, y + 0.2);
+    pdf.setFontSize(20);
+    setText(valueColor || COLOR.primary);
+    pdf.text(value, pageW - mR - 0.05, y + 0.22, { align: 'right' });
+    y += 0.38;
+  }
+
+  // ------- Client Configuration -------
+  sectionHeading('Client Configuration');
+  kvRow('Number of Employees', q.empCount.toLocaleString());
+  kvRow('Employee Tier', q.tier.low.toLocaleString() + ' – ' + q.tier.high.toLocaleString() + ' employees');
+  kvRow('Bundled Discount', q.discount > 0 ? q.discount + '%' : 'None');
+  kvRow('Billing Period', q.billing === 'monthly' ? 'Monthly' : 'Annual', { border: false });
+  y += 0.2;
+
+  // ------- Selected Modules -------
+  sectionHeading('Selected Modules');
+  if (q.selectedModules.length === 0) {
+    pdf.setFont('helvetica', 'italic');
+    pdf.setFontSize(10);
+    setText(COLOR.textLight);
+    pdf.text('No modules selected.', mL + 0.05, y + 0.14);
+    y += 0.3;
+  } else {
+    const xs = tableHeader(['Module', 'PEPM Rate', 'Monthly Cost'], [4.1, 1.55]);
+    for (const m of q.selectedModules) tableRow([m.name, fmt(m.rate), fmt(m.monthly)], xs);
+    y += 0.1;
+    kvRow('Subtotal (PEPM)', fmt(q.subtotalPepm));
+    if (q.discount > 0) kvRow('Bundled Discount (' + q.discount + '%)', '-' + fmt(q.discountPepm) + ' PEPM', { valueColor: COLOR.success });
+    kvRow('Final PEPM Rate', fmt(q.finalPepm));
+    kvRow('Employees', q.empCount.toLocaleString(), { border: false });
+    bigTotal(q.billing === 'monthly' ? 'Estimated Monthly Total' : 'Estimated Annual Total',
+             fmtInt(q.billing === 'monthly' ? q.monthlyTotal : q.annualTotal), COLOR.primary);
+    if (q.annualTotal > 0 && q.billing === 'monthly') {
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8.5);
+      setText(COLOR.textLight);
+      pdf.text('(' + fmtInt(q.annualTotal) + ' annually)', pageW - mR - 0.05, y, { align: 'right' });
+      y += 0.18;
+    }
+  }
+  y += 0.15;
+
+  // ------- Professional Services -------
+  sectionHeading('Professional Services (One-Time)');
+  const items = [];
+  if (q.pro.implCost > 0)       items.push(['Implementation',          '$' + q.pro.implRate + '/employee × ' + q.empCount.toLocaleString() + ' employees', q.pro.implCost]);
+  if (q.pro.intCost > 0)        items.push(['Integration',             q.pro.intHours + ' hrs × $210/hr (includes API & 3rd-party)', q.pro.intCost]);
+  if (q.pro.trainCost > 0)      items.push(['Training',                q.pro.trainHours + ' hrs × $75/hr', q.pro.trainCost]);
+  if (q.pro.unionCost > 0)      items.push(['Unions / CBAs',           q.pro.unionCount + ' agreement' + (q.pro.unionCount === 1 ? '' : 's') + ' × $500', q.pro.unionCost]);
+  if (q.pro.customRulesCost > 0)items.push(['Custom Punch/Pay Rules',  q.pro.customRules + ' rule' + (q.pro.customRules === 1 ? '' : 's') + ' (' + q.pro.ruleBlocks + ' block' + (q.pro.ruleBlocks === 1 ? '' : 's') + ' of 5 × $2,000)', q.pro.customRulesCost]);
+
+  if (items.length === 0) {
+    pdf.setFont('helvetica', 'italic');
+    pdf.setFontSize(10);
+    setText(COLOR.textLight);
+    pdf.text('No professional services configured.', mL + 0.05, y + 0.14);
+    y += 0.3;
+  } else {
+    const xs = tableHeader(['Line Item', 'Details', 'Amount'], [1.9, 3.55]);
+    for (const it of items) tableRow([it[0], it[1], fmtInt(it[2])], xs, { amountColor: COLOR.accentDark });
+    y += 0.1;
+    kvRow('Subtotal', fmtInt(q.pro.proSubtotal));
+    if (q.pro.proDiscount > 0) kvRow('Pro Services Discount (' + q.pro.proDiscount + '%)', '-' + fmtInt(q.pro.proDiscountAmt), { border: false, valueColor: COLOR.success });
+    bigTotal('Total Professional Services', fmtInt(q.pro.proTotal), COLOR.accentDark);
+  }
+  y += 0.15;
+
+  // ------- Grand Summary -------
+  sectionHeading('Grand Summary');
+  needSpace(1.6);
+  const boxH = 1.25, boxGap = 0.18;
+  const boxW = (contentW - boxGap) / 2;
+  const b1X = mL, b2X = mL + boxW + boxGap;
+
+  // Monthly Recurring box
+  setFill(COLOR.recBoxBg); setDraw(COLOR.recBoxBd);
+  pdf.setLineWidth(0.01);
+  pdf.roundedRect(b1X, y, boxW, boxH, 0.08, 0.08, 'FD');
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(8); setText(COLOR.primary);
+  pdf.text('MONTHLY RECURRING', b1X + 0.2, y + 0.24);
+  pdf.setFontSize(24); pdf.text(fmtInt(q.monthlyTotal), b1X + 0.2, y + 0.65);
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(9); setText(COLOR.textLight);
+  let ty = y + 0.85;
+  if (q.annualTotal > 0) { pdf.text(fmtInt(q.annualTotal) + ' annually', b1X + 0.2, ty); ty += 0.14; }
+  if (q.monthlyTotal > 0) {
+    pdf.setFontSize(8);
+    pdf.text(fmt(q.finalPepm) + ' PEPM × ' + q.empCount.toLocaleString() + ' employees', b1X + 0.2, ty);
+    ty += 0.13;
+    if (q.discount > 0) pdf.text(q.discount + '% bundled discount applied', b1X + 0.2, ty);
+  }
+
+  // One-Time Fees box
+  setFill(COLOR.oneBoxBg); setDraw(COLOR.oneBoxBd);
+  pdf.setLineWidth(0.01);
+  pdf.roundedRect(b2X, y, boxW, boxH, 0.08, 0.08, 'FD');
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(8); setText(COLOR.accentDark);
+  pdf.text('ONE-TIME FEES', b2X + 0.2, y + 0.24);
+  pdf.setFontSize(24); pdf.text(fmtInt(q.pro.proTotal), b2X + 0.2, y + 0.65);
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(8); setText(COLOR.textLight);
+  const parts = [];
+  if (q.pro.implCost > 0)        parts.push('Impl: '   + fmtInt(q.pro.implCost));
+  if (q.pro.intCost > 0)         parts.push('Int: '    + fmtInt(q.pro.intCost));
+  if (q.pro.trainCost > 0)       parts.push('Train: '  + fmtInt(q.pro.trainCost));
+  if (q.pro.unionCost > 0)       parts.push('Unions: ' + fmtInt(q.pro.unionCost));
+  if (q.pro.customRulesCost > 0) parts.push('Rules: '  + fmtInt(q.pro.customRulesCost));
+  const detailLines = pdf.splitTextToSize(parts.join('   ·   ') || 'Not configured', boxW - 0.4);
+  let dy = y + 0.85;
+  for (const line of detailLines.slice(0, 2)) { pdf.text(line, b2X + 0.2, dy); dy += 0.13; }
+  if (q.pro.proDiscount > 0) pdf.text(q.pro.proDiscount + '% discount applied', b2X + 0.2, dy);
+
+  y += boxH + 0.3;
+
+  // First Month Estimate divider
+  setDraw(COLOR.border);
+  pdf.setLineWidth(0.008);
+  const midW = pdf.getTextWidth('FIRST MONTH ESTIMATE') + 0.3;
+  pdf.line(mL, y, (pageW - midW) / 2, y);
+  pdf.line((pageW + midW) / 2, y, pageW - mR, y);
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(8); setText(COLOR.textLight);
+  pdf.text('FIRST MONTH ESTIMATE', pageW / 2, y + 0.035, { align: 'center' });
+  y += 0.18;
+
+  // Total due at launch
+  bigTotal('Total Due at Launch', fmtInt(q.firstMonth), COLOR.primary);
+  if (q.annualTotal > 0) {
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(9); setText(COLOR.textLight);
+    pdf.text('First year total: ' + fmtInt(q.firstYear), pageW - mR - 0.05, y, { align: 'right' });
+  }
+
+  // ------- Footer on every page -------
+  const n = pdf.internal.getNumberOfPages();
+  for (let i = 1; i <= n; i++) {
+    pdf.setPage(i);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(7.5);
+    setText(COLOR.textLight);
+    pdf.text('© Findd — Pricing is illustrative. Contact sales for a formal quote.', pageW / 2, pageH - 0.3, { align: 'center' });
+    if (n > 1) pdf.text('Page ' + i + ' of ' + n, pageW - mR, pageH - 0.3, { align: 'right' });
+  }
+}
+
+// Export the calculator as a fully-formatted text-based PDF quote document
+async function exportPDF() {
+  const btn = document.getElementById('exportBtn');
+  const label = document.getElementById('exportBtnLabel');
+  const originalLabel = label.textContent;
+  btn.disabled = true;
+  label.textContent = 'Generating PDF…';
+
+  try {
+    const q = computeQuote();
+
+    // Filename: customer slug + employee count + date
+    const customerSlug = q.customerName
+      ? q.customerName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
+      : '';
+    const d = new Date();
+    const stamp = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    const filename = 'findd-pricing-quote_' + (customerSlug ? customerSlug + '_' : '') + q.empCount.toLocaleString() + '-emp_' + stamp + '.pdf';
+
+    const jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+    if (!jsPDF) throw new Error('jsPDF library did not load');
+
+    const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait', compress: true });
+    renderQuoteDocument(pdf, q);
+    pdf.save(filename);
+  } catch (err) {
+    console.error('PDF export failed:', err);
+    alert('Sorry, the PDF export failed. Please try again.');
+  } finally {
+    btn.disabled = false;
+    label.textContent = originalLabel;
+  }
+}
+
+// Initial calc
+calculate();
+</script>
+</body>
+</html>
