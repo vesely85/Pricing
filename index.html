@@ -306,8 +306,8 @@ body.exporting .no-pdf { display:none !important; }
         </select>
       </div>
       <div class="form-group">
-        <label>Bundled Discount (%)</label>
-        <input type="number" id="discount" min="0" max="100" step="0.5" value="0" oninput="calculate()">
+        <label>Bundled Discount ($/mo)</label>
+        <input type="number" id="discount" min="0" step="1" value="0" oninput="calculate()">
       </div>
       <div class="form-group">
         <label>Billing Period</label>
@@ -626,7 +626,7 @@ function fmtInt(n){ return '$' + Math.round(n).toLocaleString(); }
 
 function calculate() {
   const empCount = Math.max(1, parseInt(document.getElementById('empCount').value) || 1);
-  const discount = Math.max(0, Math.min(100, parseFloat(document.getElementById('discount').value) || 0));
+  const discountDollars = Math.max(0, parseFloat(document.getElementById('discount').value) || 0);
   const billing = document.getElementById('billingPeriod').value;
   const tierIdx = findTier(empCount);
   tierSelect.value = tierIdx;
@@ -675,19 +675,21 @@ function calculate() {
     tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-light);padding:20px;">Select modules above to see pricing</td></tr>';
   }
 
-  // Discount (applied only to PEPM modules, not flat monthly fees)
-  const discountFraction = discount / 100;
-  const discountPepm = subtotalPepm * discountFraction;
+  // Discount: user enters $/mo off PEPM total. Cap at PEPM subtotal so total stays >= 0.
+  const pepmMonthlySubtotal = subtotalPepm * empCount;
+  const cappedDiscount = Math.min(discountDollars, pepmMonthlySubtotal);
+  const discountPercent = pepmMonthlySubtotal > 0 ? (cappedDiscount / pepmMonthlySubtotal) * 100 : 0;
+  const discountPepm = empCount > 0 ? cappedDiscount / empCount : 0;
   const finalPepm = subtotalPepm - discountPepm;
   const monthlyTotal = (finalPepm * empCount) + flatMonthlyTotal;
   const annualTotal = monthlyTotal * 12;
 
   document.getElementById('subtotalPepm').textContent = fmt(subtotalPepm);
   const discountRow = document.getElementById('discountRow');
-  if(discount > 0){
+  if(discountDollars > 0 && pepmMonthlySubtotal > 0){
     discountRow.style.display = 'flex';
-    document.getElementById('discountBadge').textContent = discount + '%';
-    document.getElementById('discountAmt').textContent = '-' + fmt(discountPepm) + ' PEPM';
+    document.getElementById('discountBadge').textContent = discountPercent.toFixed(1) + '%';
+    document.getElementById('discountAmt').textContent = '-' + fmtInt(cappedDiscount) + '/mo';
   } else {
     discountRow.style.display = 'none';
   }
@@ -750,7 +752,7 @@ function calculate() {
   let monthlyDetailParts = [];
   if(subtotalPepm > 0){
     monthlyDetailParts.push(fmt(finalPepm) + ' PEPM x ' + empCount.toLocaleString() + ' employees');
-    if(discount > 0) monthlyDetailParts.push(discount + '% bundled discount applied');
+    if(cappedDiscount > 0) monthlyDetailParts.push(fmtInt(cappedDiscount) + '/mo discount (' + discountPercent.toFixed(1) + '%) applied');
   }
   if(flatMonthlyTotal > 0){
     monthlyDetailParts.push('+ ' + fmtInt(flatMonthlyTotal) + ' flat monthly fee');
@@ -802,7 +804,7 @@ function updateCustomerDisplay() {
 // Build a plain-data snapshot of all quote values (numbers, not formatted strings)
 function computeQuote() {
   const empCount = Math.max(1, parseInt(document.getElementById('empCount').value) || 1);
-  const discount = Math.max(0, Math.min(100, parseFloat(document.getElementById('discount').value) || 0));
+  const discountDollars = Math.max(0, parseFloat(document.getElementById('discount').value) || 0);
   const billing = document.getElementById('billingPeriod').value;
   const customerName = (document.getElementById('customerName').value || '').trim();
   const tierIdx = findTier(empCount);
@@ -820,7 +822,10 @@ function computeQuote() {
 
   const subtotalPepm = selectedModules.filter(m => !m.isFlatMonthly).reduce((s, m) => s + m.rate, 0);
   const flatMonthlyTotal = selectedModules.filter(m => m.isFlatMonthly).reduce((s, m) => s + m.monthly, 0);
-  const discountPepm = subtotalPepm * (discount / 100);
+  const pepmMonthlySubtotal = subtotalPepm * empCount;
+  const cappedDiscount = Math.min(discountDollars, pepmMonthlySubtotal);
+  const discountPercent = pepmMonthlySubtotal > 0 ? (cappedDiscount / pepmMonthlySubtotal) * 100 : 0;
+  const discountPepm = empCount > 0 ? cappedDiscount / empCount : 0;
   const finalPepm = subtotalPepm - discountPepm;
   const monthlyTotal = (finalPepm * empCount) + flatMonthlyTotal;
   const annualTotal = monthlyTotal * 12;
@@ -843,7 +848,7 @@ function computeQuote() {
 
   return {
     customerName, empCount, billing, tier,
-    discount, subtotalPepm, discountPepm, finalPepm, monthlyTotal, annualTotal, flatMonthlyTotal,
+    discountDollars, discountPercent, cappedDiscount, subtotalPepm, discountPepm, finalPepm, monthlyTotal, annualTotal, flatMonthlyTotal,
     selectedModules,
     pro: {
       implRate, intHours, trainHours, unionCount, customRules, ruleBlocks, proDiscount,
@@ -1050,7 +1055,7 @@ function renderQuoteDocument(pdf, q) {
   sectionHeading('Client Configuration');
   kvRow('Number of Employees', q.empCount.toLocaleString());
   kvRow('Employee Tier', q.tier.low.toLocaleString() + ' – ' + q.tier.high.toLocaleString() + ' employees');
-  kvRow('Bundled Discount', q.discount > 0 ? q.discount + '%' : 'None');
+  kvRow('Bundled Discount', q.cappedDiscount > 0 ? fmtInt(q.cappedDiscount) + '/mo (' + q.discountPercent.toFixed(1) + '%)' : 'None');
   kvRow('Billing Period', q.billing === 'monthly' ? 'Monthly' : 'Annual', { border: false });
   y += 0.2;
 
@@ -1073,7 +1078,7 @@ function renderQuoteDocument(pdf, q) {
     }
     y += 0.1;
     kvRow('Subtotal (PEPM)', fmt(q.subtotalPepm));
-    if (q.discount > 0) kvRow('Bundled Discount (' + q.discount + '%)', '-' + fmt(q.discountPepm) + ' PEPM', { valueColor: COLOR.success });
+    if (q.cappedDiscount > 0) kvRow('Bundled Discount (' + q.discountPercent.toFixed(1) + '%)', '-' + fmtInt(q.cappedDiscount) + '/mo', { valueColor: COLOR.success });
     kvRow('Final PEPM Rate', fmt(q.finalPepm));
     kvRow('Employees', q.empCount.toLocaleString(), { border: q.flatMonthlyTotal > 0 });
     if (q.flatMonthlyTotal > 0) kvRow('Flat Monthly Fees', fmtInt(q.flatMonthlyTotal), { border: false });
@@ -1137,7 +1142,7 @@ function renderQuoteDocument(pdf, q) {
       pdf.text(fmt(q.finalPepm) + ' PEPM × ' + q.empCount.toLocaleString() + ' employees', b1X + 0.2, ty);
       ty += 0.13;
     }
-    if (q.discount > 0) { pdf.text(q.discount + '% bundled discount applied', b1X + 0.2, ty); ty += 0.13; }
+    if (q.cappedDiscount > 0) { pdf.text(fmtInt(q.cappedDiscount) + '/mo discount (' + q.discountPercent.toFixed(1) + '%) applied', b1X + 0.2, ty); ty += 0.13; }
     if (q.flatMonthlyTotal > 0) pdf.text('+ ' + fmtInt(q.flatMonthlyTotal) + ' flat monthly fee', b1X + 0.2, ty);
   }
 
